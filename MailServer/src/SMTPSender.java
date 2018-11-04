@@ -39,12 +39,17 @@ public class SMTPSender {
         return true;
     }
 
+    // 현재 연결된 소켓에 명령을 전송
+    // params : [명령어, 인수, 적절한 응답코드]
     protected boolean sendCommand(String command, String param, String responseCode) throws IOException {
         String line = "", code;
+        // 명령 전송
         pw.println(command + param);
         line = br.readLine();
         System.out.println("response : " + line);
         code = line.substring(0,3);
+
+        // 응답 코드가 적절하지 않으면 실패
         if(!code.equals(responseCode))
             return false;
 
@@ -53,6 +58,7 @@ public class SMTPSender {
 
     // 특수한 도메인네임에 대한 예외처리와 메일 서버 주소로 변환하여 반환
     protected String convertDomainName(String address) {
+        // google로 입력이 들어왔으면 gmail로 변환
         if(address.equals("google.com"))
             return "smtp.gmail.com";
         else
@@ -60,6 +66,7 @@ public class SMTPSender {
     }
 
     // 메일 전송
+    // params : [아이디, 비밀번호, 보내는 주소, 받는 주소, 이메일 내용]
     public boolean sendMail(String userID, String passwd, String from, String to, String content) {
         String line = "";
         // @를 기준으로 도메인 이름을 알아낸다.
@@ -95,12 +102,19 @@ public class SMTPSender {
             if(!sendCommand("EHLO ", convertDomainName(domainName), "250"))
                 return false;
 
+            // 로그인 명령
             pw.println("AUTH LOGIN");
             line = br.readLine();
+            // 응답코드가 334가 나올 때까지 메시지 출력
             while(!line.substring(0,3).equals("334")) {
                 System.out.println(line);
                 line = br.readLine();
+                // 응답코드가 334가 나오지 않으면 실패
+                if(line == null)
+                    return false;
             }
+
+            // 암호화된 ID, 비밀번호 전송
             pw.println(this.id);
             System.out.println("response : " + br.readLine());
             pw.println(this.password);
@@ -133,6 +147,7 @@ public class SMTPSender {
             return false;
         }finally {
             try {
+                // 소켓 닫음
                 pw.println("QUIT");
                 br.close();
                 pw.close();
